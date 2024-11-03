@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 EPICCONF="${DECKY_PLUGIN_DIR}/scripts/epic-config.py"
-export LEGENDARY="/bin/flatpak run com.github.derrod.legendary"
-PROTON_TRICKS="/bin/flatpak run com.github.Matoking.protontricks"
+if which legendary >/dev/null 2>&1; then
+    export LEGENDARY=legendary
+else
+    export LEGENDARY="/bin/flatpak run com.github.derrod.legendary"
+fi
+if which protontricks >/dev/null; then
+    PROTON_TRICKS=protontricks
+else
+    PROTON_TRICKS="/bin/flatpak run com.github.Matoking.protontricks"
+fi
 # the launcher script to use in steam
 export PYTHONPATH="${DECKY_PLUGIN_DIR}/scripts/":"${DECKY_PLUGIN_DIR}/scripts/shared/":$PYTHONPATH
 
@@ -34,7 +42,7 @@ elif [[ "${EPIC_INSTALLLOCATION}" == "MicroSD" ]]; then
     MOUNT_POINT=$(lsblk --list --exclude "${NVME}" | grep part | cut -d \  -f 11-)
     if [[ "${MOUNT_POINT}" == "${LINK_TARGET}" ]]; then
         INSTALL_DIR="${LINK}/Games/epic/"
-    else    
+    else
         INSTALL_DIR="/run/media/mmcblk0p1/Games/epic/"
     fi
 else
@@ -45,8 +53,3 @@ fi
 if [[ -f "${DECKY_PLUGIN_RUNTIME_DIR}/epic_overrides.sh" ]]; then
    source "${DECKY_PLUGIN_RUNTIME_DIR}/epic_overrides.sh"
 fi
-
-
-
-
-

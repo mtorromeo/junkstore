@@ -34,7 +34,7 @@ source_scripts() {
         done
     fi
 }
-    
+
 
 
 # List of directories to search for scripts
@@ -70,4 +70,3 @@ else
         echo "Invalid action: $ACTION"
         exit 1
 fi
-

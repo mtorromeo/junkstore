@@ -2,46 +2,31 @@
 
 function init() {
     for platform in "${PLATFORMS[@]}"; do
-       
-       
         INIT="${platform}_init"
-        if [[ "$(type -t $INIT)" == "function" ]]; then
-            TEMP=$($0 $platform init)
+        if [[ "$(type -t "$INIT")" == "function" ]]; then
+            TEMP=$($0 "$platform" init)
         fi
-        
     done
     echo "{\"Type\": \"Success\", \"Content\": {\"Message\": \"Initialized\"}}"
 }
-function getgames(){
-    if [ -z "${1}" ]; then
-        FILTER=""
-    else
-        FILTER="${1}"
-    fi
-    if [ -z "${2}" ]; then
-        INSTALLED="false"
-    else
-        INSTALLED="${2}"
-    fi
-     if [ -z "${3}" ]; then
-        LIMIT="true"
-    else
-        LIMIT="${3}"
-    fi
+
+function getgames() {
+    FILTER="$1"
+    INSTALLED="${2:-false}"
+    LIMIT="${3:-true}"
     IMAGE_PATH=""
-    TEMP=$($DOSCONF --getgameswithimages "${IMAGE_PATH}" "${FILTER}" "${INSTALLED}" "${LIMIT}" "true" --dbfile $DBFILE)
-   
-    echo $TEMP
-}
-function saveconfig(){
-    cat | $DOSCONF --parsejson "${1}" --dbfile $DBFILE --platform Windows --fork Proton --version null
-}
-function getconfig(){
-    TEMP=$($DOSCONF --confjson "${1}" --platform Windows --fork Proton --version null --dbfile $DBFILE)
-    echo $TEMP
+    $DOSCONF --getgameswithimages "${IMAGE_PATH}" "${FILTER}" "${INSTALLED}" "${LIMIT}" "true" --dbfile "$DBFILE"
 }
 
-function cancelinstall(){
+function saveconfig() {
+    cat | $DOSCONF --parsejson "${1}" --dbfile "$DBFILE" --platform Windows --fork Proton --version null
+}
+
+function getconfig() {
+    $DOSCONF --confjson "${1}" --platform Windows --fork Proton --version null --dbfile "$DBFILE"
+}
+
+function cancelinstall() {
     PID=$(cat "${DECKY_PLUGIN_LOG_DIR}/${1}.pid")
     killall -w legendary
     rm "${DECKY_PLUGIN_LOG_DIR}/tmp.pid"
@@ -49,126 +34,121 @@ function cancelinstall(){
     echo "{\"Type\": \"Success\", \"Content\": {\"Message\": \"Cancelled\"}}"
 }
 
-function download(){
+function download() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile $DBFILE)
-   
-    $LEGENDARY install $1 --with-dlcs -y --platform Windows --base-path "${INSTALL_DIR}" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+    GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile "$DBFILE")
+
+    $LEGENDARY install "$1" --with-dlcs -y --platform Windows --base-path "${INSTALL_DIR}" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
 
     echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
     echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Downloading\"}}"
-
 }
-function update(){
+
+function update() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    $LEGENDARY update  $1 --update -y  >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+    $LEGENDARY update "$1" --update -y >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
     echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
     echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
-
 }
-function verify(){
+
+function verify() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    $LEGENDARY verify  $1 >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+    $LEGENDARY verify "$1" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
     echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
     echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
-
 }
-function repair(){
+
+function repair() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    $LEGENDARY repair $1  --repair-and-update -y >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+    $LEGENDARY repair" $1" --repair-and-update -y >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
     echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
     echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
-
 }
 
-function protontricks(){
+function protontricks() {
     get_steam_env
     unset STEAM_RUNTIME_LIBRARY_PATH
     export PROTONTRICKS_GUI=yad
-    
+
     ARGS="--verbose $2 --gui &> \\\"${DECKY_PLUGIN_LOG_DIR}/${1}.log\\\""
     launchoptions "${PROTON_TRICKS}"  "${ARGS}" "${3}" "Protontricks" false ""
 }
 
 #this needs more thought
-function import(){
+function import() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-     GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile $DBFILE $OFFLINE_MODE)
+     GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile "$DBFILE" "$OFFLINE_MODE")
     if [ -d "${GAME_DIR}" ]; then
-        $LEGENDARY import $1 "${GAME_DIR}" $OFFLINE_MODE >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+        $LEGENDARY import "$1" "${GAME_DIR}" "$OFFLINE_MODE" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
         echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
         if [ $? -ne 0 ]; then
-            move $1 > /dev/null
+            move "$1" > /dev/null
         fi
-       
-    fi  
-    echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
 
+    fi
+    echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
 }
-function move(){
+
+function move() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile $DBFILE $OFFLINE_MODE)
+    GAME_DIR=$($EPICCONF --get-game-dir "${1}" --dbfile "$DBFILE" "$OFFLINE_MODE")
     SKIP_MOVE=""
     if [ -d "${GAME_DIR}" ]; then
         SKIP_MOVE="--skip-move"
     fi
-    $LEGENDARY move $1 "${GAME_DIR}" $SKIP_MOVE $OFFLINE_MODE >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> $PROGRESS_LOG &
+    $LEGENDARY move "$1" "${GAME_DIR}" $SKIP_MOVE "$OFFLINE_MODE" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log" 2>> "$PROGRESS_LOG" &
     echo $! > "${DECKY_PLUGIN_LOG_DIR}/${1}.pid"
     echo "{\"Type\": \"Progress\", \"Content\": {\"Message\": \"Updating\"}}"
-
 }
 
-function install(){
+function install() {
     PROGRESS_LOG="${DECKY_PLUGIN_LOG_DIR}/${1}.progress"
-    rm $PROGRESS_LOG
+    rm "$PROGRESS_LOG"
 
-    RESULT=$($DOSCONF --addsteamclientid "${1}" "${2}" --dbfile $DBFILE)
+    RESULT=$($DOSCONF --addsteamclientid "${1}" "${2}" --dbfile "$DBFILE")
     mkdir -p "${HOME}/.compat/${1}"
     ARGS=$($ARGS_SCRIPT "${1}")
-    TEMP=$($EPICCONF --launchoptions "${1}" "${ARGS}" "" --dbfile $DBFILE $OFFLINE_MODE)
+    TEMP=$($EPICCONF --launchoptions "${1}" "${ARGS}" "" --dbfile "$DBFILE" "$OFFLINE_MODE")
     echo $TEMP
     exit 0
 }
 
-function getlaunchoptions(){
+function getlaunchoptions() {
     ARGS=$($ARGS_SCRIPT "${1}")
-    TEMP=$($EPICCONF --launchoptions "${1}" "${ARGS}" "" --dbfile $DBFILE $OFFLINE_MODE)
-    echo $TEMP
+    $EPICCONF --launchoptions "${1}" "${ARGS}" "" --dbfile "$DBFILE" "$OFFLINE_MODE"
     exit 0
 }
 
-function uninstall(){
-    $LEGENDARY uninstall $1  -y $OFFLINE_MODE>> "${DECKY_PLUGIN_LOG_DIR}/${1}.log"
+function uninstall() {
+    $LEGENDARY uninstall "$1" -y "$OFFLINE_MODE" >> "${DECKY_PLUGIN_LOG_DIR}/${1}.log"
 
     # this should be fixed before used, it might kill the entire machine
     # WORKING_DIR=$($EPICCONF --get-working-dir "${1}")
     # rm -rf "${WORKING_DIR}"
-    TEMP=$($DOSCONF --clearsteamclientid "${1}" --dbfile $DBFILE)
-    echo $TEMP
-    
+    $DOSCONF --clearsteamclientid "${1}" --dbfile "$DBFILE"
 }
-function getgamedetails(){
+
+function getgamedetails() {
     IMAGE_PATH=""
-    TEMP=$($DOSCONF --getgamedata "${1}" "${IMAGE_PATH}" --dbfile $DBFILE)
-    echo $TEMP
+    $DOSCONF --getgamedata "${1}" "${IMAGE_PATH}" --dbfile "$DBFILE"
     exit 0
 }
-function getbats(){
-    TEMP=$($DOSCONF --getjsonbats "${1}" --dbfile $DBFILE --dbfile $DBFILE)
-    echo $TEMP
+
+function getbats() {
+    $DOSCONF --getjsonbats "${1}" --dbfile "$DBFILE" --dbfile "$DBFILE"
 }
-function savebats(){
-    cat | $DOSCONF --updatebats "${1}" --dbfile $DBFILE
+
+function savebats() {
+    cat | $DOSCONF --updatebats "${1}" --dbfile "$DBFILE"
 }
+
 function getprogress()
 {
-    TEMP=$($EPICCONF --getprogress "${DECKY_PLUGIN_LOG_DIR}/${1}.progress" --dbfile $DBFILE)
-    echo $TEMP
+    $EPICCONF --getprogress "${DECKY_PLUGIN_LOG_DIR}/${1}.progress" --dbfile "$DBFILE"
 }
-function loginstatus(){
-    TEMP=$($EPICCONF --getloginstatus --dbfile $DBFILE --dbfile $DBFILE $OFFLINE_MODE)
-    echo $TEMP
 
+function loginstatus() {
+    $EPICCONF --getloginstatus --dbfile "$DBFILE" --dbfile "$DBFILE" "$OFFLINE_MODE"
 }
 
 # shortname: shortName,
@@ -179,40 +159,39 @@ function loginstatus(){
 # gameId: "",
 # appId: ""
 
-function enable-eos-overlay(){
+function enable-eos-overlay() {
     APP_ID=$2
-    $LEGENDARY eos-overlay enable --prefix "~/.local/share/Steam/steamapps/compatdata/${APP_ID}/pfx"
+    $LEGENDARY eos-overlay enable --prefix "$HOME/.local/share/Steam/steamapps/compatdata/${APP_ID}/pfx"
     echo "{\"Type\": \"Overlay\", \"Content\": {\"Message\": \"Enabled\"}}"
 }
 
-function disable-eos-overlay(){
+function disable-eos-overlay() {
     APP_ID=$2
-    $LEGENDARY eos-overlay disable --prefix "~/.local/share/Steam/steamapps/compatdata/${APP_ID}/pfx"
+    $LEGENDARY eos-overlay disable --prefix "$HOME/.local/share/Steam/steamapps/compatdata/${APP_ID}/pfx"
     echo "{\"Type\": \"Overlay\", \"Content\": {\"Message\": \"Enabled\"}}"
 }
 
 function export_env_variables() {
     while read -r line; do
-        export $line
-    done <<< $STEAM_ENV
+        export "${line?}"
+    done <<< "$STEAM_ENV"
 }
 
 function get_steam_env() {
     # limiting the list at the moment, but it might be required to use all the env vars in steam, TBD
     ENV_LIST=(
-    "XDG_RUNTIME_DIR" 
-    "XAUTHORITY" 
-    "WAYLAND_DISPLAY"
-    "DISPLAY"
-    "XDG_SESSION_ID"
-    "PATH"
-    "DBUS_SESSION_BUS_ADDRESS"
+        "XDG_RUNTIME_DIR"
+        "XAUTHORITY"
+        "WAYLAND_DISPLAY"
+        "DISPLAY"
+        "XDG_SESSION_ID"
+        "PATH"
+        "DBUS_SESSION_BUS_ADDRESS"
     )
     PID=$(cat ~/.steampid)
-    E="/proc/${PID}/environ"
-    STEAM_ENV=$(cat $E | tr '\0' '\n')
+    STEAM_ENV=$(tr '\0' '\n' < "/proc/${PID}/environ")
     export_env_variables
-    
+
     if [[ "${XDG_CURRENT_DESKTOP}" == "gamescope" ]]; then
         export DISPLAY=:1
         export LD_LIBRARY_PATH=/lib64:/lib:/usr/lib64:/usr/lib:$LD_LIBRARY_PATH
@@ -220,15 +199,13 @@ function get_steam_env() {
     else
         export LD_LIBRARY_PATH=/lib64:/lib:/usr/lib64:/usr/lib:$LD_LIBRARY_PATH
         export LD_PRELOAD=
-        export DISPlAY=:0
+        export DISPLAY=:0
     fi
-    
-
 }
 
-function run-exe(){
-    get_steam_env  
-    SETTINGS=$($EPICCONF --get-env-settings $ID --dbfile $DBFILE)
+function run-exe() {
+    get_steam_env
+    SETTINGS=$($EPICCONF --get-env-settings "$ID" --dbfile "$DBFILE")
     echo "${SETTINGS}"
     eval "${SETTINGS}"
     STEAM_ID="${1}"
@@ -241,35 +218,36 @@ function run-exe(){
         ARGS=""
     fi
     COMPAT_TOOL="${5}"
-    GAME_PATH=$($EPICCONF --get-game-dir $GAME_SHORTNAME --dbfile $DBFILE --offline)
+    GAME_PATH=$($EPICCONF --get-game-dir "$GAME_SHORTNAME" --dbfile "$DBFILE" --offline)
     launchoptions "\\\"${GAME_PATH}/${GAME_EXE}\\\""  "${ARGS}  &> ${DECKY_PLUGIN_LOG_DIR}/run-exe.log" "${3}" "Protontricks" true "${COMPAT_TOOL}"
 }
-function get-exe-list(){
+
+function get-exe-list() {
     get_steam_env
     STEAM_ID="${1}"
     GAME_SHORTNAME="${2}"
-    GAME_PATH=$($EPICCONF --get-game-dir $GAME_SHORTNAME --dbfile $DBFILE --offline)
+    GAME_PATH=$($EPICCONF --get-game-dir "$GAME_SHORTNAME" --dbfile "$DBFILE" --offline)
     export STEAM_COMPAT_DATA_PATH="${HOME}/.local/share/Steam/steamapps/compatdata/${STEAM_ID}"
     export STEAM_COMPAT_CLIENT_INSTALL_PATH="${GAME_PATH}"
     cd $STEAM_COMPAT_CLIENT_INSTALL_PATH
     LIST=$(find . -name "*.exe")
     JSON="{\"Type\": \"FileContent\", \"Content\": {\"Files\": ["
     for FILE in $LIST; do
-        
+
         JSON="${JSON}{\"Path\": \"${FILE}\"},"
     done
     JSON=$(echo "$JSON" | sed 's/,$//')
-    JSON="${JSON}]}}"
-    echo $JSON
+    echo "${JSON}]}}"
 }
-function launchoptions () {
-    Exe=$1 
-    Options=$2 
-    WorkingDir=$3 
-    Name=$4 
+
+function launchoptions() {
+    Exe=$1
+    Options=$2
+    WorkingDir=$3
+    Name=$4
     Compatibility=$5
     CompatTooName=$6
-    JSON="{\"Type\": \"RunExe\", \"Content\": {
+    echo "{\"Type\": \"RunExe\", \"Content\": {
         \"Exe\": \"${Exe}\",
         \"Options\": \"${Options}\",
         \"WorkingDir\": \"${WorkingDir}\",
@@ -277,36 +255,36 @@ function launchoptions () {
         \"Compatibility\": \"${Compatibility}\",
         \"CompatToolName\": \"${CompatTooName}\"
     }}"
-    echo $JSON
 }
-function login(){
+
+function login() {
     get_steam_env
     launchoptions "/bin/flatpak" "run com.github.derrod.legendary auth" "" "Epic Games Login" "Epic"
 }
-function login_launch_options(){
-    TEMP=$($DOSCONF --launchoptions "/bin/flatpak" "run com.github.derrod.legendary auth" "" "Epic Games Login" --dbfile $DBFILE)
-    echo $TEMP
+
+function login_launch_options() {
+    $DOSCONF --launchoptions "/bin/flatpak" "run com.github.derrod.legendary auth" "" "Epic Games Login" --dbfile "$DBFILE"
 }
 
-function logout(){
+function logout() {
     TEMP=$($LEGENDARY auth --delete)
     loginstatus
 }
 
-function getsetting(){
-    TEMP=$($DOSCONF --getsetting $1 --dbfile $DBFILE)
-    echo $TEMP
+function getsetting() {
+    $DOSCONF --getsetting "$1" --dbfile "$DBFILE"
 }
-function savesetting(){
-    $DOSCONF --savesetting $1 $2 --dbfile $DBFILE
-}   
-function getjsonimages(){
-    
-    TEMP=$($EPICCONF --get-base64-images "${1}" --dbfile $DBFILE --offline)
-    echo $TEMP
+
+function savesetting() {
+    $DOSCONF --savesetting "$1" "$2" --dbfile "$DBFILE"
 }
-function gettabconfig(){
-# Check if conf_schemas directory exists, create it if not
+
+function getjsonimages() {
+    $EPICCONF --get-base64-images "${1}" --dbfile "$DBFILE" --offline
+}
+
+function gettabconfig() {
+    # Check if conf_schemas directory exists, create it if not
     if [[ ! -d "${DECKY_PLUGIN_RUNTIME_DIR}/conf_schemas" ]]; then
         mkdir -p "${DECKY_PLUGIN_RUNTIME_DIR}/conf_schemas"
     fi
@@ -317,14 +295,12 @@ function gettabconfig(){
     fi
     echo "{\"Type\":\"IniContent\", \"Content\": ${TEMP}}"
 }
-function savetabconfig(){
-    
+
+function savetabconfig() {
     cat > "${DECKY_PLUGIN_RUNTIME_DIR}/conf_schemas/epictabconfig.json"
     echo "{\"Type\": \"Success\", \"Content\": {\"success\": \"True\"}}"
-    
 }
 
-function getgamesize(){
+function getgamesize() {
     echo "{\"Type\": \"GameSize\", \"Content\": {\"DiskSize\": \"\"}}"
 }
-

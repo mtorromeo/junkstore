@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # These need to be exported because it does not get executed in the context of the plugin.
-export DECKY_PLUGIN_RUNTIME_DIR="${HOME}/homebrew/data/Junk-Store"
-export DECKY_PLUGIN_DIR="${HOME}/homebrew/plugins/Junk-Store"
-export DECKY_PLUGIN_LOG_DIR="${HOME}/homebrew/logs/Junk-Store"
+#
+export DECKY_PLUGIN_DIR="$PWD"
+export DECKY_PLUGIN_RUNTIME_DIR="$(realpath "$PWD/../../data/Junk-Store")"
+export DECKY_PLUGIN_LOG_DIR="$(realpath "$PWD/../../logs/Junk-Store")"
 export WORKING_DIR=$DECKY_PLUGIN_DIR
 export Extensions="Extensions"
 ID=$1
-echo $1
+echo "$1"
 shift
-
 
 
 #########################################################################
@@ -19,16 +19,14 @@ shift
 # link to this code and make sure people understand it was YOUR fault.  #
 #########################################################################
 
-function sync-saves(){
+function sync-saves() {
     echo "sync-saves"
 }
-
-
 
 source "${DECKY_PLUGIN_DIR}/scripts/Extensions/Epic/settings.sh"
 
 echo "dbfile: ${DBFILE}"
-SETTINGS=$($EPICCONF --get-env-settings $ID --dbfile $DBFILE --platform Proton --fork "" --version "" --dbfile $DBFILE)
+SETTINGS=$($EPICCONF --get-env-settings "$ID" --dbfile "$DBFILE" --platform Proton --fork "" --version "" --dbfile "$DBFILE")
 echo "${SETTINGS}"
 eval "${SETTINGS}"
 
@@ -98,17 +96,13 @@ fi
 
 CMD=$@
 
-
-
-
 sync-saves
-
 
 QUOTED_ARGS=""
 ALL_BUT_LAST_ARG=""
 REG_FIX=""
 for arg in "$@"; do
-    QUOTED_ARGS+=" \"${arg}\"" 
+    QUOTED_ARGS+=" \"${arg}\""
     if [[ "${arg}" != "${!#}" ]]; then
         ALL_BUT_LAST_ARG+=" \"${arg}\""
         REG_FIX+=" \"${arg}\""
@@ -117,7 +111,7 @@ for arg in "$@"; do
     fi
 done
 
-ARGS=$("${ARGS_SCRIPT}" $ID)
+ARGS=$("${ARGS_SCRIPT}" "$ID")
 if [[ "${ADVANCED_IGNORE_EPIC_ARGS}" == "true" ]]; then
     ARGS="${ADVANCED_ARGUMENTS}"
 else
@@ -127,12 +121,11 @@ fi
 
 echo "ARGS: ${ARGS}" &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
 for arg in $ARGS; do
-    QUOTED_ARGS+=" \"${arg}\"" 
-    
+    QUOTED_ARGS+=" \"${arg}\""
 done
 
 pushd "${DECKY_PLUGIN_DIR}"
-GAME_PATH=$($EPICCONF --get-game-dir $ID --dbfile $DBFILE --offline)
+GAME_PATH=$($EPICCONF --get-game-dir "$ID" --dbfile "$DBFILE" --offline)
 popd
 echo "game path: ${GAME_PATH}" &> "${GAME_PATH}/launcher.log"
 
@@ -144,33 +137,34 @@ else
     echo "installing deps" &>> "${GAME_PATH}/launcher.log"
     echo "install_deps.bat does not exist"
     pwd &>> "${GAME_PATH}/launcher.log"
-    echo "`echo -e \"${REG_FIX} reg add HKEY_CLASSES_ROOT\\\\\\\\\\\\\\\\com.epicgames.launcher /f\"`" &>> "${GAME_PATH}/launcher.log" &>> "${GAME_PATH}/launcher.log"
-  
-    eval "`echo -e \"${REG_FIX} reg add HKEY_CLASSES_ROOT\\\\\\\\\\\\\\\\com.epicgames.launcher /f"`" &>> "${GAME_PATH}/launcher.log"
-   
+    echo -e \"$REG_FIX reg add HKEY_CLASSES_ROOT\\\\\\\\\\\\\\\\com.epicgames.launcher /f\" &>> "${GAME_PATH}/launcher.log"
+
+    "$REG_FIX" reg add HKEY_CLASSES_ROOT\\\\\\\\\\\\\\\\com.epicgames.launcher /f &>> "${GAME_PATH}/launcher.log"
+
     echo "EpicOnlineServices\\EpicOnlineServicesInstaller.exe" > "${GAME_PATH}/install_deps.bat"
     echo "echo \"install done\" > install.done" >> "${GAME_PATH}/install_deps.bat"
-   
+
 
     echo "running install_deps.bat" >> "${GAME_PATH}/launcher.log"
     pushd "${GAME_PATH}"
-  
+
     echo "path: ${GAME_PATH}" &>> "${GAME_PATH}/launcher.log"
-    echo "`echo -e $ALL_BUT_LAST_ARG`" &>> "${GAME_PATH}/launcher.log"
-    eval "`echo -e $ALL_BUT_LAST_ARG`"  # &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
+    echo -e "$ALL_BUT_LAST_ARG" &>> "${GAME_PATH}/launcher.log"
+    $ALL_BUT_LAST_ARG  # &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
     popd
 fi
 
 echo -e "Running: ${QUOTED_ARGS}" >> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
 
 export STORE="egs"
-export UMU_ID=$($EPICCONF --get-umu-id $ID --dbfile $DBFILE)
+UMU_ID=$($EPICCONF --get-umu-id "$ID" --dbfile "$DBFILE")
+export UMU_ID
 export PROTON_SET_GAME_DRIVE="gamedrive"
 export STEAM_COMPAT_INSTALL_PATH=${GAME_PATH}
 export STEAM_COMPAT_LIBRARY_PATHS=${STEAM_COMPAT_LIBRARY_PATHS}:${GAME_PATH}
 
-eval "`echo -e ${ADVANCED_VARIABLES}`" &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
-eval "`echo -e $QUOTED_ARGS`"  &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
+$ADVANCED_VARIABLES &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
+$QUOTED_ARGS &>> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
 # eval "${CMD} ${ARGS}"  &> "${DECKY_PLUGIN_LOG_DIR}/${ID}.log"
 
 sync-saves
@@ -180,4 +174,3 @@ sync-saves
 # echo "${CMD} ${ARGS}" >> run.sh
 # chmod +x run.sh
 # ./run.sh && rm run.sh
- 

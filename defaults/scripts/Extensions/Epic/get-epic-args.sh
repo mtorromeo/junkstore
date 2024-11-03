@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 PLATFORM=Epic
-export DECKY_PLUGIN_RUNTIME_DIR="${HOME}/homebrew/data/Junk-Store"
-export DECKY_PLUGIN_DIR="${HOME}/homebrew/plugins/Junk-Store"
-export DECKY_PLUGIN_LOG_DIR="${HOME}/homebrew/logs/Junk-Store"
-export LEGENDARY="/bin/flatpak run com.github.derrod.legendary"
+export DECKY_PLUGIN_DIR="$PWD"
+export DECKY_PLUGIN_RUNTIME_DIR="$(realpath "$PWD/../../data/Junk-Store")"
+export DECKY_PLUGIN_LOG_DIR="$(realpath "$PWD/../../logs/Junk-Store")"
+if which legendary >/dev/null 2>&1; then
+    export LEGENDARY=legendary
+else
+    export LEGENDARY="/bin/flatpak run com.github.derrod.legendary"
+fi
 
 export PYTHONPATH="${DECKY_PLUGIN_DIR}/scripts/":"${DECKY_PLUGIN_DIR}/scripts/shared/":$PYTHONPATH
 
